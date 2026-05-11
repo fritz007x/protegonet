@@ -1,0 +1,59 @@
+openapi: 3.0.0
+info:
+  title: Google Safe Browsing API
+  version: 1.0.0
+
+servers:
+  - url: https://safebrowsing.googleapis.com
+
+paths:
+  /v4/threatMatches:find:
+    post:
+      operationId: checkThreat
+      parameters:
+        - name: key
+          in: query
+          required: true
+          schema:
+            type: string
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                client:
+                  type: object
+                  properties:
+                    clientId:
+                      type: string
+                    clientVersion:
+                      type: string
+                threatInfo:
+                  type: object
+                  properties:
+                    threatTypes:
+                      type: array
+                      items:
+                        type: string
+                    platformTypes:
+                      type: array
+                      items:
+                        type: string
+                    threatEntryTypes:
+                      type: array
+                      items:
+                        type: string
+                    threatEntries:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          url:
+                            type: string
+
+      responses:
+        '200':
+          description: OK

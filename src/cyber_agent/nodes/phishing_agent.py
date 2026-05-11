@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 import re
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
 
 from ..llm import make_llm
 from ..state import ThreatState
 from ..tools.html_analysis import analyze_html
 from ..tools.safe_browsing import check_url_safe_browsing
 from ..tools.urlscan import urlscan_submit
-from ._parse_utils import confidence_to_severity, parse_classification, truncate_at_word
+from ._parse_utils import confidence_to_severity, extract_hostname, parse_classification, truncate_at_word
 
 _HTML_INDICATOR_SIGNALS: dict[str, tuple[str, str]] = {
     "login_form_offsite":  ("high",   "html_credential_harvest"),
@@ -186,8 +186,9 @@ def phishing_agent(state: ThreatState) -> dict:
                     "reason": "html_excessive_redirects",
                     "detail": fetch_info["redirect_chain"],
                 })
+        hostname = extract_hostname(u)
         for tld in _SUSPICIOUS_TLDS:
-            if u.lower().split("?")[0].endswith(tld):
+            if hostname.lower().endswith(tld):
                 signals.append(
                     {
                         "source": "phishing",

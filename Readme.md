@@ -1,6 +1,6 @@
 # Protegonet — Cyber Agent
 
-AI threat defense for small and rural businesses. A multi-agent [LangGraph](https://langchain-ai.github.io/langgraph/) application, deployable on **IBM watsonx.ai**, that ingests email / PDF / invoice content, classifies the threat, runs specialist analysis, scores risk, and takes one of three actions — **Alert / Block / Verify** — with a human-in-the-loop escape hatch for high-risk events.
+AI threat defense for small and rural businesses. A multi-agent [LangGraph](https://langchain-ai.github.io/langgraph/) application that ingests email / PDF / invoice content, classifies the threat, runs specialist analysis, scores risk, and takes one of three actions — **Alert / Block / Verify** — with a human-in-the-loop escape hatch for high-risk events.
 
 ## Why
 
@@ -11,10 +11,10 @@ Small businesses are the soft underbelly of the AI-attack era: GenAI-crafted phi
 - **Multi-agent orchestration** — single `StateGraph` with dynamic `Command(goto=...)` routing to specialist agents (invoice, phishing, BEC).
 - **Invoice fraud detection** — OCR + vendor history + LLM reasoning. Hard rule: bank-account change → always HITL verify.
 - **Phishing analysis** — URL extraction, Google Safe Browsing + urlscan.io lookups, suspicious-TLD and display-name heuristics.
-- **BEC detection** — urgency-language rules, sender baseline checks, RAG over known BEC patterns with watsonx.ai embeddings.
+- **BEC detection** — urgency-language rules, sender baseline checks, RAG over known BEC patterns with Gemini embeddings.
 - **Risk scoring + action** — weighted severity aggregation; `verify` decisions pause the graph via `interrupt()` and emit an HMAC-signed email approval link.
 - **Durable state** — SqliteSaver checkpointer (local) / Postgres-backed in prod; paused runs resume on the same thread id.
-- **watsonx.ai native** — Granite 4.0 H Small by default, swappable per agent via `make_llm(agent, model_id=...)`.
+- **Gemini-powered** — `gemini-2.0-flash` by default, swappable per agent via `make_llm(agent, model_id=...)`.
 - **Offline-safe fallbacks** — stub LLM / embeddings / API clients so the test suite runs without credentials.
 
 ## Architecture
@@ -42,7 +42,7 @@ Small businesses are the soft underbelly of the AI-attack era: GenAI-crafted phi
                   └─────────┬──────────┘
                             ▼
                   ┌────────────────────┐
-                  │ Feedback Logger    │  → watsonx.data / audit_log
+                  │ Feedback Logger    │  → SQLite audit_log
                   └────────────────────┘
 ```
 
@@ -59,7 +59,7 @@ cyber-agent/
 ├── src/cyber_agent/
 │   ├── config.py              # env + Settings dataclass
 │   ├── state.py               # ThreatState + reducers
-│   ├── llm.py                 # WatsonxLLM / embeddings factory (+ stubs)
+│   ├── llm.py                 # Gemini LLM / embeddings factory (+ stubs)
 │   ├── graph.py               # build_graph() — StateGraph wiring
 │   ├── hitl_mailer.py         # HMAC-signed approval links + SMTP
 │   ├── preprocessing/ocr.py
@@ -79,8 +79,8 @@ cyber-agent/
 │   │   └── email_baseline.py
 │   ├── rag/
 │   │   ├── embeddings.py
-│   │   └── retriever.py       # in-memory cosine; watsonx.data target
-│   ├── data/watsonx_data.py   # vendors / audit_log / signatures
+│   │   └── retriever.py       # in-memory cosine similarity
+│   ├── data/store.py          # vendors / audit_log / signatures (SQLite)
 │   └── api/main.py            # FastAPI: /analyze, /hitl/{tid}, /resume/{tid}
 └── tests/
     ├── test_invoice_agent.py
@@ -95,14 +95,14 @@ cyber-agent/
 
 - Python 3.10+
 - (Optional) Tesseract + Poppler for real PDF OCR. Without them, text input still works.
-- (Optional) IBM watsonx.ai credentials. Without them, the app runs against deterministic stubs — useful for tests and local dev.
+- (Optional) Gemini API key. Without it, the app runs against deterministic stubs — useful for tests and local dev.
 
 ### Install
 
 ```bash
 pip install -e .[dev]
 cp .env.example .env
-# edit .env — fill WATSONX_URL, WATSONX_APIKEY, WATSONX_PROJECT_ID to leave stub mode
+# edit .env — fill GEMINI_API_KEY to leave stub mode
 ```
 
 ### Run the API
@@ -133,7 +133,25 @@ Account Number: NEW-999-888" \
 python -m pytest
 ```
 
-The suite is offline-safe — it exercises the whole graph including HITL interrupt/resume, the RAG retriever, and HMAC link signing, all without hitting watsonx or any external API.
+The suite is offline-safe — it exercises the whole graph including HITL interrupt/resume, the RAG retriever, and HMAC link signing, all without hitting any external API.
+
+### Vendor service
+
+A separate FastAPI service exposes the SQLite vendor history as a tool importable via `vendor_api.yaml`. It shares the same `audit.sqlite` store as the LangGraph app.
+
+```bash
+# 1. Set an API key the client will send.
+echo "VENDOR_API_KEY=change-me" >> .env
+
+# 2. Seed the vendor table from the bundled invoices fixture.
+python scripts/seed_vendors.py
+
+# 3. Run the service on its own port.
+uvicorn cyber_agent.api.vendor_service:app --port 8001
+
+# 4. Smoke test.
+curl -H "X-API-Key: change-me" http://localhost:8001/vendors/vendor-969284fc
+```
 
 ## Configuration
 
@@ -141,37 +159,23 @@ All config is loaded from `.env` via `src/cyber_agent/config.py`. Key variables:
 
 | Variable | Purpose |
 |---|---|
-| `WATSONX_URL`, `WATSONX_APIKEY`, `WATSONX_PROJECT_ID` | watsonx.ai credentials (absent → stub mode) |
-| `WATSONX_MODEL_ID` | Default `ibm/granite-4-h-small` |
-| `WATSONX_EMBEDDING_MODEL_ID` | Default `ibm/slate-125m-english-rtrvr` |
+| `GEMINI_API_KEY` | Gemini API key (absent → stub mode) |
+| `GEMINI_MODEL_ID` | Default `gemini-2.0-flash` |
+| `GEMINI_EMBEDDING_MODEL_ID` | Default `models/text-embedding-004` |
 | `SAFE_BROWSING_KEY`, `URLSCAN_KEY` | External threat intel (optional) |
 | `SMTP_*`, `HITL_APPROVER_EMAIL` | HITL email delivery (optional; falls back to logging link) |
 | `HITL_SIGNING_KEY`, `HITL_LINK_TTL_MINUTES`, `HITL_PUBLIC_BASE_URL` | Approval-link signing |
 | `SQLITE_CHECKPOINT_PATH`, `AUDIT_DB_PATH` | Local persistence paths |
+| `VENDOR_API_KEY` | Shared secret for the vendor service |
 
 ## Deployment
 
-The app is packaged as a FastAPI service and containerized via `Dockerfile` (Python 3.11-slim + Tesseract + Poppler). Recommended runtime: **IBM Cloud Code Engine**, alongside watsonx.ai.
+The app is packaged as a FastAPI service and containerized via `Dockerfile` (Python 3.11-slim + Tesseract + Poppler).
 
 ```bash
 docker build -t protegonet .
 docker run -p 8000:8000 --env-file .env protegonet
-
-# Code Engine (example)
-ibmcloud ce application create --name protegonet \
-  --image <registry>/protegonet:latest \
-  --env-from-secret protegonet-env \
-  --port 8000
 ```
-
-For production, swap the default SqliteSaver for a Postgres-backed durable checkpointer (IBM Cloud Databases for Postgres) and point `data/watsonx_data.py` at your watsonx.data instance.
-
-## Confirmed Decisions
-
-- **Model**: `ibm/granite-4-h-small` (Granite 4.0) across all agents. Hot-swappable per agent.
-- **Delivery**: FastAPI + Python lib, containerized to IBM Cloud Code Engine, calling watsonx.ai via `langchain-ibm`.
-- **Vector store**: watsonx.data native vector column (single source of truth for vendors, email baselines, threat signatures, audit log).
-- **HITL channel**: Email approval link — verify events emit an HMAC-signed URL; clicking resumes the paused graph.
 
 ## Development Notes
 

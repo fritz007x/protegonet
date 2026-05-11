@@ -1,8 +1,7 @@
 """In-process threat signature retriever.
 
-Production: persist embeddings to watsonx.data's vector column. For MVP we keep
-an in-memory list seeded on first use; swap the store out without touching
-callers.
+For MVP we keep an in-memory list seeded on first use; swap the store out
+without touching callers.
 """
 from __future__ import annotations
 

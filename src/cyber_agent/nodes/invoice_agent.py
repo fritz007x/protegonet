@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ..data.watsonx_data import get_vendor
+from ..data.store import get_vendor
 from ..llm import make_llm
 from ..state import ThreatState
 from ._parse_utils import confidence_to_severity, parse_classification

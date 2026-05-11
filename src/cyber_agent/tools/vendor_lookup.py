@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from langchain_core.tools import tool
 
-from ..data.watsonx_data import get_vendor, upsert_vendor
+from ..data.store import get_vendor, upsert_vendor
 
 
 @tool

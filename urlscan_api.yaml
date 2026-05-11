@@ -1,0 +1,76 @@
+openapi: 3.0.0
+info:
+  title: urlscan API (Simplified)
+  version: 1.0.0
+
+servers:
+  - url: https://urlscan.io/api/v1
+
+paths:
+  /scan:
+    post:
+      operationId: submitScan
+      summary: Submit URL scan
+
+      parameters:
+        - name: API-Key
+          in: header
+          required: true
+          schema:
+            type: string
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                url:
+                  type: string
+                  description: URL to scan
+                visibility:
+                  type: string
+                  example: public
+
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  uuid:
+                    type: string
+                  api:
+                    type: string
+
+  /result/{uuid}:
+    get:
+      operationId: getResult
+      summary: Get scan result
+
+      parameters:
+        - name: API-Key
+          in: header
+          required: true
+          schema:
+            type: string
+
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  verdicts:
+                    type: object

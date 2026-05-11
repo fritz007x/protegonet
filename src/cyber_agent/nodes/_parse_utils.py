@@ -1,6 +1,16 @@
 """Shared LLM response parsing utilities for agent nodes."""
 from __future__ import annotations
 
+from urllib.parse import urlparse
+
+
+def extract_hostname(url: str) -> str:
+    """Return the hostname from a URL, or an empty string on failure."""
+    try:
+        return urlparse(url).hostname or ""
+    except Exception:
+        return ""
+
 
 def confidence_to_severity(confidence: str) -> str:
     """Map High/Medium/Low confidence string to high/medium/low severity."""

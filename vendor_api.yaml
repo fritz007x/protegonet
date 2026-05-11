@@ -1,0 +1,122 @@
+openapi: 3.0.0
+info:
+  title: Protego Vendor Service
+  version: 0.1.0
+  description: |
+    Vendor history lookup and upsert for watsonx Orchestrate agents. Backed by
+    the Protego Cyber Agent SQLite vendor store. Use these tools to check whether
+    a supplier is already on file before approving an invoice, and to remember
+    a newly verified supplier going forward.
+
+servers:
+  - url: http://localhost:8001
+    description: Local dev. Replace with the deployed service URL before importing into Orchestrate.
+
+security:
+  - apiKey: []
+
+components:
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+  schemas:
+    VendorRecord:
+      type: object
+      required: [supplier_id]
+      properties:
+        supplier_id:
+          type: string
+          description: Supplier identifier. Lookups are case-insensitive.
+        bank_account:
+          type: string
+          nullable: true
+          description: Last known bank account on file for this vendor.
+        avg_amount:
+          type: number
+          nullable: true
+          description: Historical average invoice amount in the vendor's billing currency.
+        last_seen:
+          type: string
+          nullable: true
+          description: ISO date (YYYY-MM-DD) of the most recent invoice from this vendor.
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Free-form attributes (e.g. provider_id, country, invoice_count).
+    VendorUpsertRequest:
+      type: object
+      required: [supplier_id]
+      properties:
+        supplier_id:
+          type: string
+          description: Supplier identifier to create or update.
+        bank_account:
+          type: string
+          nullable: true
+        avg_amount:
+          type: number
+          nullable: true
+        last_seen:
+          type: string
+          nullable: true
+        metadata:
+          type: object
+          nullable: true
+          additionalProperties: true
+
+paths:
+  /vendors/{supplier_id}:
+    get:
+      operationId: lookup_vendor
+      summary: Look up a vendor by supplier ID
+      description: |
+        Return the stored vendor record for the given supplier ID, including
+        the last known bank account, historical average invoice amount, and
+        the date of the most recent invoice. Use this before approving a
+        payment to confirm the supplier is recognized and the bank account
+        matches what is on file.
+      parameters:
+        - name: supplier_id
+          in: path
+          required: true
+          description: Supplier identifier (case-insensitive).
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Vendor record found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VendorRecord'
+        '404':
+          description: No vendor with that name is on file.
+        '401':
+          description: Missing or invalid API key.
+
+  /vendors:
+    post:
+      operationId: upsert_vendor
+      summary: Create or update a vendor record
+      description: |
+        Insert a new vendor or update an existing one. Only the fields supplied
+        in the request are written; omitted fields keep their existing values.
+        Use this after a human has verified a new supplier or confirmed an
+        intentional bank account change.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VendorUpsertRequest'
+      responses:
+        '200':
+          description: The vendor record after the upsert.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VendorRecord'
+        '401':
+          description: Missing or invalid API key.

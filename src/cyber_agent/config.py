@@ -7,12 +7,10 @@ load_dotenv()
 
 @dataclass(frozen=True)
 class Settings:
-    watsonx_url: str = os.getenv("WATSONX_URL", "")
-    watsonx_apikey: str = os.getenv("WATSONX_APIKEY", "")
-    watsonx_project_id: str = os.getenv("WATSONX_PROJECT_ID", "")
-    watsonx_model_id: str = os.getenv("WATSONX_MODEL_ID", "ibm/granite-4-h-small")
-    watsonx_embedding_model_id: str = os.getenv(
-        "WATSONX_EMBEDDING_MODEL_ID", "ibm/slate-125m-english-rtrvr"
+    gemini_api_key: str = os.getenv("GEMINI_API_KEY", "")
+    gemini_model_id: str = os.getenv("GEMINI_MODEL_ID", "gemini-2.0-flash")
+    gemini_embedding_model_id: str = os.getenv(
+        "GEMINI_EMBEDDING_MODEL_ID", "models/text-embedding-004"
     )
 
     safe_browsing_key: str = os.getenv("SAFE_BROWSING_KEY", "")
@@ -31,9 +29,11 @@ class Settings:
     sqlite_checkpoint_path: str = os.getenv("SQLITE_CHECKPOINT_PATH", "./data/checkpoints.sqlite")
     audit_db_path: str = os.getenv("AUDIT_DB_PATH", "./data/audit.sqlite")
 
+    vendor_api_key: str = os.getenv("VENDOR_API_KEY", "")
+
 
 settings = Settings()
 
 
-def watsonx_credentials_present() -> bool:
-    return bool(settings.watsonx_url and settings.watsonx_apikey and settings.watsonx_project_id)
+def gemini_credentials_present() -> bool:
+    return bool(settings.gemini_api_key)

@@ -1,11 +1,11 @@
-"""Integration: real WatsonxLLM + WatsonxEmbeddings calls."""
+"""Integration: real Gemini LLM + embeddings calls."""
 import pytest
 
-from tests.integration.conftest import watsonx
+from tests.integration.conftest import gemini
 from cyber_agent.llm import make_embeddings, make_llm
 
 
-@watsonx
+@gemini
 def test_llm_invoke_returns_text():
     llm = make_llm("test")
     result = llm.invoke("Reply with the single word: pong")
@@ -13,7 +13,7 @@ def test_llm_invoke_returns_text():
     assert len(result) > 0
 
 
-@watsonx
+@gemini
 def test_llm_orchestrator_temp_zero():
     """Orchestrator uses temperature=0 — repeated calls should return same output."""
     llm = make_llm("orchestrator")
@@ -22,7 +22,7 @@ def test_llm_orchestrator_temp_zero():
     assert r1 == r2
 
 
-@watsonx
+@gemini
 def test_embeddings_produce_vectors():
     emb = make_embeddings()
     vecs = emb.embed_documents(["invoice fraud", "phishing link"])
@@ -30,7 +30,7 @@ def test_embeddings_produce_vectors():
     assert all(isinstance(v, list) and len(v) > 0 for v in vecs)
 
 
-@watsonx
+@gemini
 def test_embeddings_query_similar_to_doc():
     """Query embedding for 'wire transfer fraud' should be closer to a BEC doc than a receipt."""
     import math

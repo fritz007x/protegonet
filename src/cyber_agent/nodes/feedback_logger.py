@@ -4,7 +4,7 @@ import hashlib
 import json
 from datetime import datetime, timezone
 
-from ..data.watsonx_data import upsert_vendor, write_audit
+from ..data.store import upsert_vendor, write_audit
 from ..state import ThreatState
 
 
