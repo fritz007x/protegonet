@@ -6,7 +6,7 @@ import pytest
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.types import Command
 
-from cyber_agent.data.watsonx_data import init_db, upsert_vendor
+from cyber_agent.data.store import init_db, upsert_vendor
 from cyber_agent.graph import build_graph
 
 

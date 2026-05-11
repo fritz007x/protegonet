@@ -24,8 +24,8 @@ env/
 htmlcov/
 *.xml
 
-# Local data / checkpoints
-data/
+# Local data / checkpoints (runtime SQLite files at repo root)
+/data/
 
 # IDEs
 .vscode/

@@ -3,7 +3,7 @@
 Every test that calls a real external service is guarded by a pytest.mark
 that skips unless the relevant env var is present. Run the full suite with:
 
-    pytest tests/integration/ -m watsonx
+    pytest tests/integration/ -m gemini
     pytest tests/integration/ -m threat_intel
     pytest tests/integration/ -m smtp
     pytest tests/integration/          # all integration tests
@@ -13,6 +13,9 @@ Set env vars (or populate .env) before running.
 import os
 
 import pytest
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 def _require(*vars_: str, reason: str):
@@ -20,9 +23,9 @@ def _require(*vars_: str, reason: str):
     return pytest.mark.skipif(bool(missing), reason=f"{reason} — missing: {', '.join(missing)}")
 
 
-watsonx = _require(
-    "WATSONX_URL", "WATSONX_APIKEY", "WATSONX_PROJECT_ID",
-    reason="watsonx.ai credentials required",
+gemini = _require(
+    "GEMINI_API_KEY",
+    reason="Gemini API key required",
 )
 threat_intel_sb = _require("SAFE_BROWSING_KEY", reason="Google Safe Browsing key required")
 threat_intel_us = _require("URLSCAN_KEY", reason="urlscan.io key required")

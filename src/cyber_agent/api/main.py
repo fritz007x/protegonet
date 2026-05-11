@@ -18,14 +18,21 @@ _graph = build_graph()
 async def analyze(
     file: UploadFile | None = File(default=None),
     text: str | None = Form(default=None),
+    type: str | None = Form(default=None),
+    sender: str | None = Form(default=None),
 ) -> dict[str, Any]:
     if file is None and not text:
         raise HTTPException(400, "Provide either a file or text")
     content: Any = await file.read() if file is not None else text
     trace_id = str(uuid.uuid4())
     config = {"configurable": {"thread_id": trace_id}}
+    raw: dict[str, Any] = {"content": content}
+    if type:
+        raw["type"] = type
+    if sender:
+        raw["sender"] = sender
     result = _graph.invoke(
-        {"raw_input": {"type": "invoice", "content": content}, "trace_id": trace_id},
+        {"raw_input": raw, "trace_id": trace_id},
         config=config,
     )
     snapshot = _graph.get_state(config)

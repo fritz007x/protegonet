@@ -1,11 +1,11 @@
-"""Integration: full graph runs with real watsonx.ai LLM calls."""
+"""Integration: full graph runs with real Gemini LLM calls."""
 import uuid
 
 import pytest
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.types import Command
 
-from tests.integration.conftest import watsonx
+from tests.integration.conftest import gemini
 from cyber_agent.graph import build_graph
 
 
@@ -45,9 +45,9 @@ def graph():
     return build_graph(checkpointer=MemorySaver())
 
 
-@watsonx
+@gemini
 def test_invoice_known_good_completes(graph, tmp_path, monkeypatch):
-    from cyber_agent.data.watsonx_data import init_db, upsert_vendor
+    from cyber_agent.data.store import init_db, upsert_vendor
     monkeypatch.setenv("AUDIT_DB_PATH", str(tmp_path / "audit.sqlite"))
     from cyber_agent import config as cfg
     object.__setattr__(cfg.settings, "audit_db_path", str(tmp_path / "audit.sqlite"))
@@ -63,9 +63,9 @@ def test_invoice_known_good_completes(graph, tmp_path, monkeypatch):
     assert isinstance(out["reasoning"], str) and len(out["reasoning"]) > 0
 
 
-@watsonx
+@gemini
 def test_invoice_bank_change_triggers_hitl_and_resumes(graph, tmp_path, monkeypatch):
-    from cyber_agent.data.watsonx_data import init_db, upsert_vendor
+    from cyber_agent.data.store import init_db, upsert_vendor
     monkeypatch.setenv("AUDIT_DB_PATH", str(tmp_path / "audit.sqlite"))
     from cyber_agent import config as cfg
     object.__setattr__(cfg.settings, "audit_db_path", str(tmp_path / "audit.sqlite"))
@@ -85,7 +85,7 @@ def test_invoice_bank_change_triggers_hitl_and_resumes(graph, tmp_path, monkeypa
     assert out["decision"] == "block"
 
 
-@watsonx
+@gemini
 def test_phishing_email_routes_and_scores(graph):
     tid = str(uuid.uuid4())
     out = graph.invoke(
@@ -97,7 +97,7 @@ def test_phishing_email_routes_and_scores(graph):
     assert out["decision"] in ("alert", "block", "verify", "pass")
 
 
-@watsonx
+@gemini
 def test_bec_email_routes_and_scores(graph):
     tid = str(uuid.uuid4())
     out = graph.invoke(

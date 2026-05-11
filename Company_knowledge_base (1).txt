@@ -1,0 +1,245 @@
+**GlowTech Studio – Unified Knowledge Base (Enhanced for Phishing & Fraud Detection)**
+
+---
+
+## 🏢 COMPANY PROFILE
+
+* Company Name: GlowTech Studio
+* Industry: Beauty & Content Creation
+* Domain: glowtechstudio.com
+* Official Emails: [finance@glowtechstudio.com](mailto:finance@glowtechstudio.com), [hello@glowtechstudio.com](mailto:hello@glowtechstudio.com), [operations@glowtechstudio.com](mailto:operations@glowtechstudio.com)
+* Phone: +1-404-555-0192
+
+**Business Bank Details**
+
+* Bank: Chase Bank
+* Account Number: 2874519032
+* Routing Number: 021000021
+
+**Payment Methods**
+
+* Bank Transfer
+* Stripe
+* PayPal
+
+**Accounting Software**
+
+* QuickBooks
+
+**Currency**
+
+* USD
+
+---
+
+## 👥 EMPLOYEE DIRECTORY
+
+* Jordan Blake – Founder & Creative Director – [jordan@glowtechstudio.com](mailto:jordan@glowtechstudio.com) – Executive – HIGH
+* Maya Chen – Finance Manager – [finance@glowtechstudio.com](mailto:finance@glowtechstudio.com) – Finance – HIGH
+* Ethan Cole – Operations Lead – [operations@glowtechstudio.com](mailto:operations@glowtechstudio.com) – Operations – MEDIUM
+* Sofia Ramirez – Marketing Manager – [sofia@glowtechstudio.com](mailto:sofia@glowtechstudio.com) – Marketing – MEDIUM
+* Liam Turner – Content Producer – [liam@glowtechstudio.com](mailto:liam@glowtechstudio.com) – Creative – LOW
+* Ava Patel – Product Manager – [ava@glowtechstudio.com](mailto:ava@glowtechstudio.com) – Product – MEDIUM
+* Noah Brooks – IT Specialist – [it@glowtechstudio.com](mailto:it@glowtechstudio.com) – IT – MEDIUM
+* Chloe Martin – Customer Support – [support@glowtechstudio.com](mailto:support@glowtechstudio.com) – Support – LOW
+* Daniel Kim – Logistics Coordinator – [daniel@glowtechstudio.com](mailto:daniel@glowtechstudio.com) – Logistics – LOW
+* Isabella Rossi – HR Manager – [hr@glowtechstudio.com](mailto:hr@glowtechstudio.com) – HR – MEDIUM
+
+---
+
+## 🏢 VENDOR DATABASE
+
+**V001 – BrightLens Media**
+
+* Domain: brightlensmedia.com
+* Email: [billing@brightlensmedia.com](mailto:billing@brightlensmedia.com)
+* Bank: Bank of America | Account: 5567812390 | Routing: 026009593
+* Services: Photography & Lens Equipment
+* Invoice Range: $800 – $5000
+
+**V002 – PureGlow Supplies**
+
+* Domain: pureglow.co
+* Email: [accounts@pureglow.co](mailto:accounts@pureglow.co)
+* Bank: Wells Fargo | Account: 6623901145 | Routing: 121000248
+* Services: Skincare Ingredients
+* Invoice Range: $200 – $2000
+
+**V003 – StudioSpace Rentals**
+
+* Domain: studiospace.com
+* Email: [billing@studiospace.com](mailto:billing@studiospace.com)
+* Bank: Chase Bank | Account: 8839201142 | Routing: 021000021
+* Services: Studio Rental
+* Invoice Range: $1000 – $7000
+
+**V004 – AdWave Marketing**
+
+* Domain: adwave.io
+* Email: [finance@adwave.io](mailto:finance@adwave.io)
+* Bank: Citibank | Account: 4478219901 | Routing: 021000089
+* Services: Digital Marketing
+* Invoice Range: $500 – $4000
+
+**V005 – PackPro Logistics**
+
+* Domain: packprologistics.com
+* Email: [accounts@packprologistics.com](mailto:accounts@packprologistics.com)
+* Bank: Regions Bank | Account: 3390027811 | Routing: 062000019
+* Services: Shipping & Fulfillment
+* Invoice Range: $300 – $3000
+
+**V006 – GlowPrint Packaging**
+
+* Domain: glowprintpack.com
+* Email: [billing@glowprintpack.com](mailto:billing@glowprintpack.com)
+* Bank: US Bank | Account: 5519920034 | Routing: 091000022
+* Services: Custom Packaging
+* Invoice Range: $400 – $3500
+
+**V007 – CloudCore IT**
+
+* Domain: cloudcoreit.com
+* Email: [support@cloudcoreit.com](mailto:support@cloudcoreit.com)
+* Bank: Capital One | Account: 7712239001 | Routing: 051405515
+* Services: IT & Cloud Services
+* Invoice Range: $200 – $1500
+
+**V008 – InfluenceHub Agency**
+
+* Domain: influencehub.agency
+* Email: [payments@influencehub.agency](mailto:payments@influencehub.agency)
+* Bank: HSBC | Account: 9982341100 | Routing: 021001088
+* Services: Influencer Management
+* Invoice Range: $1000 – $6000
+
+**V009 – SoundLite Studios**
+
+* Domain: soundlite.com
+* Email: [accounts@soundlite.com](mailto:accounts@soundlite.com)
+* Bank: PNC Bank | Account: 6621190032 | Routing: 043000096
+* Services: Audio Production
+* Invoice Range: $300 – $2500
+
+**V010 – CleanScene Services**
+
+* Domain: cleanscene.co
+* Email: [billing@cleanscene.co](mailto:billing@cleanscene.co)
+* Bank: Truist Bank | Account: 5508821900 | Routing: 061000104
+* Services: Cleaning Services
+* Invoice Range: $150 – $1200
+
+---
+
+## ⚠️ FRAUD PATTERNS
+
+* FP01: Domain spoofing → Risk Weight: 40
+* FP02: Urgent payment request → Risk Weight: 20
+* FP03: Bank detail change → Risk Weight: 50
+* FP04: Unusual invoice amount → Risk Weight: 25
+* FP05: New vendor → Risk Weight: 30
+
+---
+
+## 📊 RISK SCORING RULES
+
+* Domain mismatch → +40
+* Bank detail change → +50
+* Urgent language → +20
+* Unknown vendor → +30
+* Amount anomaly → +25
+* Missing approval → +20
+
+---
+
+## 📧 EMAIL METADATA RULES
+
+* Sender domain must exactly match vendor domain
+* Reply-to address must match sender domain
+* Display name must not conflict with email domain
+* Emails claiming to be internal staff must come from official company domain
+* External emails impersonating employees = HIGH RISK
+
+---
+
+## 🧾 COMMUNICATION PATTERNS (NORMAL BEHAVIOR)
+
+* Vendors use professional, non-urgent tone
+* Emails include invoice ID and clear descriptions
+* Vendors do not request immediate same-day payment
+* No pressure tactics or threats
+* Finance communication occurs only via official domain
+
+---
+
+## 🔄 PAYMENT WORKFLOW
+
+1. Invoice received via vendor email
+2. Verified against vendor database
+3. Reviewed by finance team
+4. Approved based on thresholds
+5. Payment processed via approved methods
+
+Any deviation from this flow should be considered suspicious.
+
+---
+
+## 📜 PAYMENT POLICY (AGENT INTERPRETATION)
+
+**Approved Payment Methods**
+
+* Bank Transfer, Stripe, PayPal only
+* Any other method = HIGH RISK
+
+**Approval Rules**
+
+* > $1,000 → Finance Manager approval required
+* > $5,000 → Dual approval required
+
+**Vendor Rules**
+
+* Must exist in vendor database
+* Email domain must exactly match
+
+**Bank Verification**
+
+* Must match vendor records
+* Any change requires phone verification
+* Email-only change requests are NOT trusted
+
+**Invoice Validation**
+
+* Amount must fall within expected range
+* Items must match vendor services
+* Frequency must match historical patterns
+
+**Red Flags**
+
+* Urgent language
+* Payment pressure tactics
+* Domain mismatches
+* Unknown vendors
+
+**Impersonation Protection**
+
+* Only official company emails are trusted
+* Personal or unknown emails = suspicious
+
+**Risk Handling**
+
+* Multiple violations → classify as FRAUD
+* High confidence when multiple indicators present
+
+---
+
+## ⚠️ EDGE CASE HANDLING
+
+* If critical data is missing:
+
+  * Do not assume legitimacy
+  * Classify as Suspicious
+  * Lower confidence score
+  * Explicitly state missing information
+
+---
+

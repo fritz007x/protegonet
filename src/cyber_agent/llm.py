@@ -2,47 +2,61 @@ from __future__ import annotations
 
 from typing import Any
 
-from .config import settings, watsonx_credentials_present
+from .config import settings, gemini_credentials_present
+
+_llm_cache: dict[tuple[str, float], _GeminiLLM] = {}  # (model_id, temperature) → instance
 
 
-def _params(agent: str) -> dict[str, Any]:
-    return {
-        "decoding_method": "greedy",
-        "max_new_tokens": 512,
-        "temperature": 0.0 if agent == "orchestrator" else 0.2,
-    }
+def _temperature(agent: str) -> float:
+    return 0.0 if agent == "orchestrator" else 0.2
 
 
 def make_llm(agent: str = "default", model_id: str | None = None):
-    """Build a WatsonxLLM. Falls back to a deterministic stub when credentials are absent.
+    """Build a Gemini chat LLM. Falls back to a deterministic stub when credentials are absent.
 
-    The stub lets us run unit tests and local smoke flows without hitting watsonx.
+    The stub lets us run unit tests and local smoke flows without hitting the API.
     """
-    if not watsonx_credentials_present():
+    if not gemini_credentials_present():
         return _StubLLM(agent=agent)
 
-    from langchain_ibm import WatsonxLLM  # lazy import
+    from langchain_google_genai import ChatGoogleGenerativeAI  # lazy import
 
-    return WatsonxLLM(
-        model_id=model_id or settings.watsonx_model_id,
-        url=settings.watsonx_url,
-        project_id=settings.watsonx_project_id,
-        apikey=settings.watsonx_apikey,
-        params=_params(agent),
-    )
+    resolved = model_id or settings.gemini_model_id
+    temp = _temperature(agent)
+    key = (resolved, temp)
+    if key not in _llm_cache:
+        chat = ChatGoogleGenerativeAI(
+            model=resolved,
+            google_api_key=settings.gemini_api_key,
+            temperature=temp,
+        )
+        _llm_cache[key] = _GeminiLLM(chat)
+    return _llm_cache[key]
 
 
 def make_embeddings():
-    if not watsonx_credentials_present():
+    if not gemini_credentials_present():
         return _StubEmbeddings()
-    from langchain_ibm import WatsonxEmbeddings
 
-    return WatsonxEmbeddings(
-        model_id=settings.watsonx_embedding_model_id,
-        url=settings.watsonx_url,
-        project_id=settings.watsonx_project_id,
-        apikey=settings.watsonx_apikey,
+    from langchain_google_genai import GoogleGenerativeAIEmbeddings  # lazy import
+
+    return GoogleGenerativeAIEmbeddings(
+        model=settings.gemini_embedding_model_id,
+        google_api_key=settings.gemini_api_key,
     )
+
+
+class _GeminiLLM:
+    """Thin wrapper so callers receive a plain string from .invoke(), matching _StubLLM."""
+
+    def __init__(self, chat_model: Any):
+        self._m = chat_model
+
+    def invoke(self, prompt: str, **_: Any) -> str:
+        return self._m.invoke(prompt).content
+
+    def __call__(self, prompt: str, **kw: Any) -> str:
+        return self.invoke(prompt, **kw)
 
 
 class _StubLLM:

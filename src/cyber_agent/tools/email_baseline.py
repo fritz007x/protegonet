@@ -7,7 +7,7 @@ from langchain_core.tools import tool
 def get_sender_baseline(email: str) -> dict:
     """Return a (stubbed) behavioral baseline for a sender.
 
-    Real implementation would query email_baselines in watsonx.data.
+    Real implementation would query email_baselines from persistent storage.
     """
     return {
         "sender": email,
