@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import date as _date
+
 from ..data.store import get_vendor
 from ..llm import make_llm
 from ..state import ThreatState
@@ -29,7 +31,7 @@ STEP 2: PAYMENT DETAILS ANALYSIS
 
 STEP 3: DOCUMENT ANALYSIS
 - Is the invoice number format consistent with prior invoices?
-- Is the invoice date reasonable (not backdated, not far future)?
+- Is the invoice date reasonable relative to TODAY'S DATE given below (not backdated by months/years, not postdated)?
 - Are there signs of document manipulation or template fraud?
 - Assess the overall legitimacy of the document structure
 
@@ -55,6 +57,8 @@ CONFIDENCE: [High/Medium/Low]
 REASONING: [Brief summary of key factors that led to your decision]
 
 ---
+TODAY'S DATE: {today}
+
 EXTRACTED INVOICE FIELDS:
   Vendor:         {vendor}
   Amount:         {amount}
@@ -78,6 +82,7 @@ def _build_prompt(
     date: str | None,
     record: dict | None,
     signals: list[dict],
+    today: str | None = None,
 ) -> str:
     vendor_record = (
         f"  Stored bank account: {record.get('bank_account')}\n"
@@ -94,6 +99,7 @@ def _build_prompt(
         signals_summary = "  None"
 
     return _PROMPT_TEMPLATE.format(
+        today=today or _date.today().isoformat(),
         vendor=vendor or "(unknown)",
         amount=amount if amount is not None else "(unknown)",
         bank_account=bank or "(unknown)",

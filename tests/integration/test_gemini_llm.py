@@ -15,11 +15,14 @@ def test_llm_invoke_returns_text():
 
 @gemini
 def test_llm_orchestrator_temp_zero():
-    """Orchestrator uses temperature=0 — repeated calls should return same output."""
+    """Orchestrator is configured with temperature=0 for deterministic routing.
+
+    Gemini does not guarantee byte-identical output across calls even at
+    temperature=0 (no fixed seed by default), so verify the configured
+    setting directly rather than comparing two live completions.
+    """
     llm = make_llm("orchestrator")
-    r1 = llm.invoke("Say: hello")
-    r2 = llm.invoke("Say: hello")
-    assert r1 == r2
+    assert llm.temperature == 0.0
 
 
 @gemini

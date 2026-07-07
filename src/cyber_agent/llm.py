@@ -52,6 +52,10 @@ class _GeminiLLM:
     def __init__(self, chat_model: Any):
         self._m = chat_model
 
+    @property
+    def temperature(self) -> float:
+        return self._m.temperature
+
     def invoke(self, prompt: str, **_: Any) -> str:
         return self._m.invoke(prompt).content
 
