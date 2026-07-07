@@ -5,7 +5,8 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from langgraph.types import Command
 
 from ..graph import build_graph
@@ -15,14 +16,6 @@ app = FastAPI(title="Protego Cyber Agent")
 _graph = build_graph()
 
 _STATIC_DIR = Path(__file__).parent / "static"
-_INDEX_FILE = _STATIC_DIR / "index.html"
-
-
-@app.get("/", include_in_schema=False)
-async def index() -> FileResponse:
-    if not _INDEX_FILE.is_file():
-        raise HTTPException(500, "GUI asset index.html is missing from the package install")
-    return FileResponse(_INDEX_FILE, media_type="text/html")
 
 
 @app.post("/analyze")
@@ -88,3 +81,8 @@ async def resume(
 
 def _safe(state: dict[str, Any]) -> dict[str, Any]:
     return {k: v for k, v in state.items() if k != "raw_input"}
+
+
+# Serve the GUI (index.html at /, plus any sibling assets) after the explicit
+# routes above so those take precedence. html=True renders index.html for "/".
+app.mount("/", StaticFiles(directory=_STATIC_DIR, html=True), name="ui")

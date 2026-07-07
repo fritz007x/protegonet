@@ -244,7 +244,7 @@
   .signal {
     background: var(--panel-2); border: 1px solid var(--line);
     padding: 10px 12px; font-size: 12px;
-    display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: baseline;
+    display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: baseline;
     animation: rise .3s ease both;
   }
   .signal:nth-child(2) { animation-delay: .06s } .signal:nth-child(3) { animation-delay: .12s }
@@ -253,7 +253,6 @@
   .signal .sig-src { color: var(--amber); font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; white-space: nowrap; }
   .signal .sig-desc { color: var(--ink); word-break: break-word; }
   .signal .sig-desc .sig-kv { color: var(--ink-dim); }
-  .signal .sig-weight { color: var(--ink-dim); font-size: 11px; white-space: nowrap; }
   .sig-force { color: var(--verify); border: 1px solid var(--verify); font-size: 9px; padding: 1px 5px; letter-spacing: 1px; margin-left: 8px; }
 
   .parsed-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
@@ -645,11 +644,11 @@ Thank you for your continued business.`,
     if (!signals.length) {
       const d = document.createElement("div");
       d.className = "signal";
-      d.innerHTML = '<span class="sig-src">none</span><span class="sig-desc" style="color:var(--ink-dim)">No evidence signals emitted.</span><span></span>';
+      d.innerHTML = '<span class="sig-src">none</span><span class="sig-desc" style="color:var(--ink-dim)">No evidence signals emitted.</span>';
       els.signals.appendChild(d);
     }
     for (const sig of signals) {
-      const { source, weight, force, description, reason, detail, ...rest } = sig || {};
+      const { source, force, reason, detail, ...rest } = sig || {};
       const d = document.createElement("div");
       d.className = "signal";
       const src = document.createElement("span");
@@ -657,7 +656,7 @@ Thank you for your continued business.`,
       src.textContent = source || "signal";
       const desc = document.createElement("span");
       desc.className = "sig-desc";
-      const label = description || reason || "";
+      const label = reason || "";
       desc.textContent = label;
       if (detail) {
         const dt = document.createElement("span");
@@ -666,7 +665,7 @@ Thank you for your continued business.`,
         desc.appendChild(dt);
       }
       const kv = Object.entries(rest)
-        .filter(([k, val]) => val !== null && val !== undefined && val !== "" && k !== "name" && k !== "kind")
+        .filter(([k, val]) => val !== null && val !== undefined && val !== "")
         .map(([k, val]) => `${k}: ${typeof val === "object" ? JSON.stringify(val) : val}`)
         .join("  ·  ");
       if (kv) {
@@ -681,10 +680,7 @@ Thank you for your continued business.`,
         f.textContent = "FORCE " + String(force).toUpperCase();
         desc.appendChild(f);
       }
-      const w = document.createElement("span");
-      w.className = "sig-weight";
-      w.textContent = typeof weight === "number" ? "w " + weight.toFixed(2) : "";
-      d.append(src, desc, w);
+      d.append(src, desc);
       els.signals.appendChild(d);
     }
 

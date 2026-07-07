@@ -79,19 +79,19 @@ Account Number: ACME-111-222
 """
 
 
-def _seed_acme():
+def seed_acme():
     upsert_vendor("Acme Supplies", bank_account="ACME-111-222", avg_amount=500.0)
 
 
 def test_known_good_invoice_passes():
-    _seed_acme()
+    seed_acme()
     g = build_graph(checkpointer=MemorySaver())
     _, _, out = _run(g, INVOICE_KNOWN)
     assert out["decision"] in ("pass", "alert")
 
 
 def test_bank_account_change_triggers_hitl():
-    _seed_acme()
+    seed_acme()
     g = build_graph(checkpointer=MemorySaver())
     tid, cfg, out = _run(g, INVOICE_BANK_CHANGE)
     # Interrupt surfaces as no final decision yet; state is paused.
@@ -111,7 +111,7 @@ def test_new_vendor_alerts():
 
 
 def test_amount_anomaly_alerts():
-    _seed_acme()
+    seed_acme()
     g = build_graph(checkpointer=MemorySaver())
     _, _, out = _run(g, INVOICE_AMOUNT_ANOMALY)
     assert any(s.get("reason") == "amount_anomaly" for s in out["signals"])

@@ -6,18 +6,14 @@ import pytest
 from fastapi.testclient import TestClient
 
 from cyber_agent.api.main import app
-from cyber_agent.data.store import init_db, upsert_vendor
+from tests.test_invoice_agent import INVOICE_BANK_CHANGE, seed_acme
 
 client = TestClient(app)
 
 
 @pytest.fixture(autouse=True)
-def _isolated_db(tmp_path):
-    """Redirect the audit/vendor DB at a tmp file so UI tests stay hermetic."""
-    from cyber_agent import config as cfg
-
-    object.__setattr__(cfg.settings, "audit_db_path", str(tmp_path / "audit.sqlite"))
-    init_db()
+def _isolated_db(isolated_db):
+    """Apply the shared conftest DB isolation to every UI test."""
     yield
 
 
@@ -59,18 +55,12 @@ def test_resume_rejects_invalid_token():
     assert res.status_code == 403
 
 
-BANK_CHANGE_INVOICE = (
-    "Vendor: Acme Supplies\nInvoice No: 1002\nDate: 2026-02-01\n"
-    "Amount Due: $510.00\nAccount Number: NEW-999-888"
-)
-
-
 def test_resume_with_valid_token_after_pause():
     """Full HITL loop through the API: a bank-change invoice pauses, and a
     correctly signed token lets /resume proceed to a final decision."""
-    upsert_vendor("Acme Supplies", bank_account="ACME-111-222", avg_amount=500.0)
+    seed_acme()
 
-    res = client.post("/analyze", data={"type": "invoice", "text": BANK_CHANGE_INVOICE})
+    res = client.post("/analyze", data={"type": "invoice", "text": INVOICE_BANK_CHANGE})
     assert res.status_code == 200
     body = res.json()
     assert body["paused"] is True

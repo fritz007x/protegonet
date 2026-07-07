@@ -82,7 +82,6 @@ def _build_prompt(
     date: str | None,
     record: dict | None,
     signals: list[dict],
-    today: str | None = None,
 ) -> str:
     vendor_record = (
         f"  Stored bank account: {record.get('bank_account')}\n"
@@ -99,7 +98,7 @@ def _build_prompt(
         signals_summary = "  None"
 
     return _PROMPT_TEMPLATE.format(
-        today=today or _date.today().isoformat(),
+        today=_date.today().isoformat(),
         vendor=vendor or "(unknown)",
         amount=amount if amount is not None else "(unknown)",
         bank_account=bank or "(unknown)",

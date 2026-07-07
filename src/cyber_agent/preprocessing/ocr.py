@@ -44,10 +44,7 @@ def _to_text(source: Any) -> str:
             with pdfplumber.open(io.BytesIO(source)) as pdf:
                 return "\n".join((p.extract_text() or "") for p in pdf.pages)
         except Exception:
-            try:
-                return source.decode("utf-8", errors="ignore")
-            except Exception:
-                return ""
+            return source.decode("utf-8", errors="ignore")
     return ""
 
 
