@@ -10,7 +10,7 @@ class Settings:
     gemini_api_key: str = os.getenv("GEMINI_API_KEY", "")
     gemini_model_id: str = os.getenv("GEMINI_MODEL_ID", "gemini-2.0-flash")
     gemini_embedding_model_id: str = os.getenv(
-        "GEMINI_EMBEDDING_MODEL_ID", "models/text-embedding-004"
+        "GEMINI_EMBEDDING_MODEL_ID", "models/gemini-embedding-001"
     )
 
     safe_browsing_key: str = os.getenv("SAFE_BROWSING_KEY", "")

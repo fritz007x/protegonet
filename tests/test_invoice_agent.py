@@ -21,6 +21,21 @@ def _isolated_db(tmp_path, monkeypatch):
     yield
 
 
+@pytest.fixture(autouse=True)
+def _force_stub_llm(monkeypatch):
+    """This module is the offline stub-mode regression baseline (see CLAUDE.md).
+
+    Blank the API key regardless of a locally configured .env so results stay
+    deterministic; live-model behavior belongs in tests/integration (@gemini).
+    """
+    from cyber_agent import config as cfg
+
+    original = cfg.settings.gemini_api_key
+    object.__setattr__(cfg.settings, "gemini_api_key", "")
+    yield
+    object.__setattr__(cfg.settings, "gemini_api_key", original)
+
+
 def _run(graph, text: str, thread_id: str | None = None):
     tid = thread_id or str(uuid.uuid4())
     cfg = {"configurable": {"thread_id": tid}}
