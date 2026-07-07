@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import uuid
+from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
-from fastapi.responses import HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from langgraph.types import Command
 
 from ..graph import build_graph
@@ -12,6 +13,16 @@ from ..hitl_mailer import send_approval_email, verify_token
 
 app = FastAPI(title="Protego Cyber Agent")
 _graph = build_graph()
+
+_STATIC_DIR = Path(__file__).parent / "static"
+_INDEX_FILE = _STATIC_DIR / "index.html"
+
+
+@app.get("/", include_in_schema=False)
+async def index() -> FileResponse:
+    if not _INDEX_FILE.is_file():
+        raise HTTPException(500, "GUI asset index.html is missing from the package install")
+    return FileResponse(_INDEX_FILE, media_type="text/html")
 
 
 @app.post("/analyze")
@@ -68,9 +79,8 @@ async def resume(
     token_exp: int | None = Form(default=None),
     token_sig: str | None = Form(default=None),
 ) -> dict[str, Any]:
-    if token_exp is not None and token_sig is not None:
-        if not verify_token(thread_id, token_exp, token_sig):
-            raise HTTPException(403, "invalid or expired token")
+    if token_exp is None or token_sig is None or not verify_token(thread_id, token_exp, token_sig):
+        raise HTTPException(403, "missing, invalid, or expired approval token")
     config = {"configurable": {"thread_id": thread_id}}
     result = _graph.invoke(Command(resume={"approved": approved, "notes": notes}), config=config)
     return {"trace_id": thread_id, "state": _safe(result)}

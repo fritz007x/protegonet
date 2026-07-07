@@ -25,12 +25,18 @@ def extract_invoice_fields(source: Any) -> dict:
     }
 
 
+# Magic-byte prefixes for the image formats the GUI accepts (PNG, JPEG).
+_IMAGE_MAGIC = (b"\x89PNG\r\n\x1a\n", b"\xff\xd8\xff")
+
+
 def _to_text(source: Any) -> str:
     if isinstance(source, dict) and "text" in source:
         return source["text"]
     if isinstance(source, str):
         return source
     if isinstance(source, bytes):
+        if source.startswith(_IMAGE_MAGIC):
+            return _ocr_image(source)
         try:
             import pdfplumber  # type: ignore
             import io
@@ -43,6 +49,21 @@ def _to_text(source: Any) -> str:
             except Exception:
                 return ""
     return ""
+
+
+def _ocr_image(source: bytes) -> str:
+    """OCR a scanned invoice image. Degrades to '' when Pillow/pytesseract or the
+    tesseract binary are unavailable, so the pipeline stays offline-safe."""
+    try:
+        import io
+
+        import pytesseract  # type: ignore
+        from PIL import Image  # type: ignore
+
+        with Image.open(io.BytesIO(source)) as img:
+            return pytesseract.image_to_string(img)
+    except Exception:  # missing binary, unreadable image, etc.
+        return ""
 
 
 def _first(pat: re.Pattern, text: str) -> str | None:

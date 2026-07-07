@@ -1,0 +1,759 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Protego — Threat Intake Console</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Saira+Extra+Condensed:wght@500;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #0a0d10;
+    --panel: #10151a;
+    --panel-2: #0d1216;
+    --line: #1e2830;
+    --line-bright: #2c3a46;
+    --ink: #d7e0e7;
+    --ink-dim: #7a8a96;
+    --ink-faint: #4a5a66;
+    --amber: #f2a71b;
+    --amber-dim: rgba(242, 167, 27, 0.12);
+    --pass: #3ecf8e;
+    --alert: #f2b83d;
+    --block: #ff5252;
+    --verify: #3fb8f0;
+    --mono: "IBM Plex Mono", Consolas, "Courier New", monospace;
+    --display: "Saira Extra Condensed", "Arial Narrow", sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--mono);
+    font-size: 14px;
+    line-height: 1.55;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+  ::selection { background: var(--amber); color: #0a0d10; }
+
+  /* ---------- header ---------- */
+  header {
+    display: flex; align-items: center; gap: 16px;
+    padding: 14px 28px;
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg, #0e1318, #0a0d10);
+    position: sticky; top: 0; z-index: 10;
+  }
+  .logo-mark {
+    width: 34px; height: 34px; flex: none;
+    border: 2px solid var(--amber);
+    clip-path: polygon(50% 0, 100% 22%, 100% 62%, 50% 100%, 0 62%, 0 22%);
+    display: grid; place-items: center;
+    color: var(--amber); font-weight: 600; font-size: 15px;
+  }
+  .logo-type { font-family: var(--display); font-weight: 700; font-size: 26px; letter-spacing: 3px; text-transform: uppercase; }
+  .logo-type em { color: var(--amber); font-style: normal; }
+  .header-sub { color: var(--ink-faint); font-size: 11px; letter-spacing: 2px; text-transform: uppercase; margin-top: 2px; }
+  .header-right { margin-left: auto; text-align: right; font-size: 11px; color: var(--ink-dim); letter-spacing: 1px; }
+  .live-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--pass); margin-right: 6px; animation: pulse 2.4s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: .25 } }
+
+  /* ---------- layout ---------- */
+  main {
+    display: grid;
+    grid-template-columns: minmax(380px, 520px) 1fr;
+    gap: 24px;
+    padding: 24px 28px 48px;
+    max-width: 1500px;
+    margin: 0 auto;
+  }
+  @media (max-width: 980px) { main { grid-template-columns: 1fr; } }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    position: relative;
+  }
+  .panel::before {
+    content: "";
+    position: absolute; inset: 0 auto auto 0;
+    width: 100%; height: 2px;
+    background: linear-gradient(90deg, var(--amber), transparent 60%);
+    opacity: .7;
+  }
+  .panel-head {
+    display: flex; align-items: baseline; gap: 10px;
+    padding: 14px 18px 10px;
+    border-bottom: 1px solid var(--line);
+  }
+  .panel-head h2 {
+    font-family: var(--display); font-size: 20px; font-weight: 700;
+    letter-spacing: 2.5px; text-transform: uppercase;
+  }
+  .panel-head .tag { font-size: 10px; color: var(--ink-faint); letter-spacing: 2px; text-transform: uppercase; }
+  .panel-body { padding: 18px; }
+
+  /* ---------- intake tabs ---------- */
+  .tabs { display: flex; gap: 0; margin-bottom: 16px; border: 1px solid var(--line); }
+  .tabs button {
+    flex: 1; padding: 10px 0;
+    background: var(--panel-2); color: var(--ink-dim);
+    border: none; border-right: 1px solid var(--line);
+    font-family: var(--mono); font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase;
+    cursor: pointer; transition: all .15s;
+  }
+  .tabs button:last-child { border-right: none; }
+  .tabs button.active { background: var(--amber-dim); color: var(--amber); box-shadow: inset 0 -2px 0 var(--amber); }
+  .tabs button:hover:not(.active) { color: var(--ink); }
+
+  textarea {
+    width: 100%; min-height: 240px; resize: vertical;
+    background: var(--panel-2); color: var(--ink);
+    border: 1px solid var(--line);
+    padding: 12px; font-family: var(--mono); font-size: 13px; line-height: 1.6;
+  }
+  textarea:focus, input:focus, select:focus { outline: 1px solid var(--amber); outline-offset: -1px; }
+  textarea::placeholder { color: var(--ink-faint); }
+
+  .dropzone {
+    min-height: 240px;
+    border: 1.5px dashed var(--line-bright);
+    background: var(--panel-2);
+    display: none;
+    flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+    color: var(--ink-dim); text-align: center; padding: 24px;
+    cursor: pointer; transition: border-color .15s, background .15s;
+  }
+  .dropzone.visible { display: flex; }
+  .dropzone.dragover { border-color: var(--amber); background: var(--amber-dim); color: var(--amber); }
+  .dropzone .dz-icon { font-size: 34px; opacity: .8; }
+  .dropzone .dz-hint { font-size: 11px; color: var(--ink-faint); letter-spacing: 1px; }
+  .dropzone .dz-file { color: var(--pass); font-size: 13px; word-break: break-all; }
+
+  .meta-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+  label.field { display: block; }
+  label.field span {
+    display: block; font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--ink-faint); margin-bottom: 5px;
+  }
+  input[type="text"], input[type="email"], select {
+    width: 100%; padding: 9px 10px;
+    background: var(--panel-2); color: var(--ink);
+    border: 1px solid var(--line);
+    font-family: var(--mono); font-size: 13px;
+  }
+  select { appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--ink-dim) 50%), linear-gradient(135deg, var(--ink-dim) 50%, transparent 50%); background-position: calc(100% - 16px) 55%, calc(100% - 11px) 55%; background-size: 5px 5px; background-repeat: no-repeat; }
+
+  .submit-row { display: flex; gap: 12px; align-items: center; margin-top: 20px; }
+  .btn-primary {
+    flex: 1; padding: 13px 0;
+    background: var(--amber); color: #0a0d10;
+    border: none; font-family: var(--display); font-size: 19px; font-weight: 700;
+    letter-spacing: 3px; text-transform: uppercase; cursor: pointer;
+    transition: transform .08s, box-shadow .15s;
+    box-shadow: 0 0 0 rgba(242,167,27,0);
+  }
+  .btn-primary:hover { box-shadow: 0 0 24px rgba(242,167,27,.35); }
+  .btn-primary:active { transform: translateY(1px); }
+  .btn-primary:disabled { background: var(--line-bright); color: var(--ink-faint); cursor: not-allowed; box-shadow: none; }
+  .btn-ghost {
+    padding: 12px 16px; background: transparent; color: var(--ink-dim);
+    border: 1px solid var(--line); font-family: var(--mono); font-size: 12px;
+    letter-spacing: 1px; text-transform: uppercase; cursor: pointer;
+  }
+  .btn-ghost:hover { color: var(--ink); border-color: var(--line-bright); }
+
+  .samples { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 14px; }
+  .samples-label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 8px; }
+  .samples button {
+    background: transparent; border: 1px solid var(--line); color: var(--ink-dim);
+    font-family: var(--mono); font-size: 11px; padding: 5px 10px; margin: 0 6px 6px 0;
+    cursor: pointer; letter-spacing: .5px;
+  }
+  .samples button:hover { color: var(--amber); border-color: var(--amber); }
+
+  /* ---------- results ---------- */
+  .idle-state {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 420px; gap: 14px; color: var(--ink-faint); text-align: center;
+  }
+  .idle-state .reticle {
+    width: 84px; height: 84px; border: 1px solid var(--line-bright); border-radius: 50%;
+    position: relative; display: grid; place-items: center; font-size: 30px; opacity: .55;
+  }
+  .idle-state .reticle::before, .idle-state .reticle::after {
+    content: ""; position: absolute; background: var(--line-bright);
+  }
+  .idle-state .reticle::before { width: 1px; height: 104px; }
+  .idle-state .reticle::after { height: 1px; width: 104px; }
+  .idle-state p { font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; }
+
+  .scanning { display: none; flex-direction: column; align-items: center; justify-content: center; min-height: 420px; gap: 18px; }
+  .scan-track { width: 62%; height: 3px; background: var(--line); overflow: hidden; position: relative; }
+  .scan-bar { position: absolute; width: 35%; height: 100%; background: var(--amber); animation: scan 1.1s ease-in-out infinite; }
+  @keyframes scan { 0% { left: -35% } 100% { left: 100% } }
+  .scan-steps { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--ink-dim); min-height: 18px; }
+
+  .result { display: none; }
+  .verdict-strip {
+    display: flex; align-items: stretch; gap: 0;
+    border: 1px solid var(--line); margin-bottom: 18px;
+    animation: slam .25s cubic-bezier(.2, 1.4, .4, 1);
+  }
+  @keyframes slam { from { transform: scale(1.06); opacity: 0 } to { transform: scale(1); opacity: 1 } }
+  .verdict-stamp {
+    padding: 18px 30px;
+    font-family: var(--display); font-size: 42px; font-weight: 700;
+    letter-spacing: 6px; text-transform: uppercase; line-height: 1;
+    display: flex; align-items: center;
+    border-right: 1px solid var(--line);
+  }
+  .verdict-meta { padding: 12px 18px; display: flex; flex-direction: column; justify-content: center; gap: 4px; flex: 1; }
+  .verdict-meta .vm-line { font-size: 11px; color: var(--ink-dim); letter-spacing: 1px; }
+  .verdict-meta .vm-line b { color: var(--ink); font-weight: 500; }
+  .v-pass   { color: var(--pass);   background: rgba(62,207,142,.07); text-shadow: 0 0 18px rgba(62,207,142,.45); }
+  .v-alert  { color: var(--alert);  background: rgba(242,184,61,.07); text-shadow: 0 0 18px rgba(242,184,61,.45); }
+  .v-block  { color: var(--block);  background: rgba(255,82,82,.08);  text-shadow: 0 0 18px rgba(255,82,82,.5); }
+  .v-verify { color: var(--verify); background: rgba(63,184,240,.07); text-shadow: 0 0 18px rgba(63,184,240,.45); }
+
+  .risk-block { margin-bottom: 18px; }
+  .risk-head { display: flex; justify-content: space-between; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 6px; }
+  .risk-head .risk-num { font-size: 13px; color: var(--ink); }
+  .risk-track { height: 10px; background: var(--panel-2); border: 1px solid var(--line); position: relative; }
+  .risk-fill { height: 100%; width: 0; transition: width .8s cubic-bezier(.2,.8,.2,1); background: linear-gradient(90deg, var(--pass), var(--alert) 55%, var(--block)); }
+  .risk-ticks { display: flex; justify-content: space-between; font-size: 9px; color: var(--ink-faint); margin-top: 3px; }
+
+  .section-label {
+    font-size: 10px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--ink-faint);
+    margin: 20px 0 8px; display: flex; align-items: center; gap: 10px;
+  }
+  .section-label::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+
+  .reasoning-box {
+    background: var(--panel-2); border: 1px solid var(--line); border-left: 3px solid var(--amber);
+    padding: 12px 14px; font-size: 13px; color: var(--ink); white-space: pre-wrap;
+  }
+
+  .signals { display: flex; flex-direction: column; gap: 8px; }
+  .signal {
+    background: var(--panel-2); border: 1px solid var(--line);
+    padding: 10px 12px; font-size: 12px;
+    display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: baseline;
+    animation: rise .3s ease both;
+  }
+  .signal:nth-child(2) { animation-delay: .06s } .signal:nth-child(3) { animation-delay: .12s }
+  .signal:nth-child(4) { animation-delay: .18s } .signal:nth-child(5) { animation-delay: .24s }
+  @keyframes rise { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: none } }
+  .signal .sig-src { color: var(--amber); font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; white-space: nowrap; }
+  .signal .sig-desc { color: var(--ink); word-break: break-word; }
+  .signal .sig-desc .sig-kv { color: var(--ink-dim); }
+  .signal .sig-weight { color: var(--ink-dim); font-size: 11px; white-space: nowrap; }
+  .sig-force { color: var(--verify); border: 1px solid var(--verify); font-size: 9px; padding: 1px 5px; letter-spacing: 1px; margin-left: 8px; }
+
+  .parsed-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+  .parsed-cell { background: var(--panel-2); border: 1px solid var(--line); padding: 8px 10px; }
+  .parsed-cell .pc-k { font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ink-faint); }
+  .parsed-cell .pc-v { font-size: 12px; color: var(--ink); word-break: break-all; margin-top: 2px; }
+
+  .hitl {
+    display: none; margin-top: 20px;
+    border: 1px solid var(--verify); background: rgba(63,184,240,.05);
+    padding: 16px;
+  }
+  .hitl h3 { font-family: var(--display); font-size: 19px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--verify); margin-bottom: 6px; }
+  .hitl p { font-size: 12px; color: var(--ink-dim); margin-bottom: 12px; }
+  .hitl .hitl-actions { display: flex; gap: 10px; }
+  .hitl input[type="text"] { margin-bottom: 12px; }
+  .btn-approve, .btn-reject {
+    padding: 10px 22px; border: none; cursor: pointer;
+    font-family: var(--mono); font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 600;
+  }
+  .btn-approve { background: var(--pass); color: #06130c; }
+  .btn-reject { background: transparent; color: var(--block); border: 1px solid var(--block); }
+  .btn-approve:hover { box-shadow: 0 0 16px rgba(62,207,142,.4); }
+  .btn-reject:hover { background: rgba(255,82,82,.1); }
+
+  .error-box {
+    display: none; margin-top: 16px;
+    border: 1px solid var(--block); background: rgba(255,82,82,.06);
+    color: var(--block); padding: 12px 14px; font-size: 12px; word-break: break-word;
+  }
+  .trace-line { margin-top: 18px; font-size: 10px; color: var(--ink-faint); letter-spacing: 1px; word-break: break-all; }
+  details.raw { margin-top: 10px; }
+  details.raw summary { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--ink-faint); cursor: pointer; }
+  details.raw pre {
+    background: var(--panel-2); border: 1px solid var(--line); padding: 12px;
+    font-size: 11px; overflow-x: auto; margin-top: 8px; max-height: 320px; overflow-y: auto; color: var(--ink-dim);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-mark">P</div>
+  <div>
+    <div class="logo-type">Prote<em>go</em></div>
+    <div class="header-sub">Threat Intake Console</div>
+  </div>
+  <div class="header-right">
+    <div><span class="live-dot"></span>AGENT ONLINE</div>
+    <div id="clock"></div>
+  </div>
+</header>
+
+<main>
+  <!-- ============ INTAKE ============ -->
+  <section class="panel">
+    <div class="panel-head"><h2>Submit Evidence</h2><span class="tag">// email · invoice · pdf</span></div>
+    <div class="panel-body">
+
+      <div class="tabs">
+        <button type="button" id="tab-paste" class="active">Paste Message</button>
+        <button type="button" id="tab-upload">Upload File</button>
+      </div>
+
+      <textarea id="text-input" placeholder="Paste the suspicious email or invoice text here...
+
+From: accounts@vend0r-billing.com
+Subject: URGENT — updated bank details for invoice #4821
+..."></textarea>
+
+      <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Upload a file">
+        <div class="dz-icon">⇪</div>
+        <div id="dz-label">Drop a file here or click to browse</div>
+        <div class="dz-hint">PDF · EML · TXT · PNG / JPG (scanned invoices)</div>
+        <div class="dz-file" id="dz-file"></div>
+      </div>
+      <input type="file" id="file-input" hidden accept=".pdf,.eml,.txt,.msg,.png,.jpg,.jpeg" />
+
+      <div class="meta-row">
+        <label class="field">
+          <span>Sender (optional)</span>
+          <input type="email" id="sender-input" placeholder="billing@vendor.com" />
+        </label>
+        <label class="field">
+          <span>Threat type hint</span>
+          <select id="type-input">
+            <option value="">Auto-detect</option>
+            <option value="invoice">Invoice fraud</option>
+            <option value="phishing">Phishing</option>
+            <option value="bec">Business email compromise</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="submit-row">
+        <button class="btn-primary" id="analyze-btn">Analyze Threat</button>
+        <button class="btn-ghost" id="clear-btn" type="button">Clear</button>
+      </div>
+
+      <div class="samples">
+        <div class="samples-label">Load a demo sample</div>
+        <button type="button" data-sample="phishing">Phishing email</button>
+        <button type="button" data-sample="bec">BEC / CEO fraud</button>
+        <button type="button" data-sample="bank-change">Invoice — bank change</button>
+        <button type="button" data-sample="known-good">Invoice — known good</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ANALYSIS ============ -->
+  <section class="panel">
+    <div class="panel-head"><h2>Analysis</h2><span class="tag">// preprocess → route → score → act</span></div>
+    <div class="panel-body">
+
+      <div class="idle-state" id="idle">
+        <div class="reticle">🛡️</div>
+        <p>Awaiting evidence</p>
+        <p style="font-size:10px; max-width:340px; line-height:1.8;">Paste a suspicious email or upload an invoice.<br/>Protego routes it to a specialist agent and returns a verdict.</p>
+      </div>
+
+      <div class="scanning" id="scanning">
+        <div class="scan-track"><div class="scan-bar"></div></div>
+        <div class="scan-steps" id="scan-step">Preprocessing input…</div>
+      </div>
+
+      <div class="result" id="result">
+        <div class="verdict-strip">
+          <div class="verdict-stamp" id="verdict-stamp">—</div>
+          <div class="verdict-meta">
+            <div class="vm-line">THREAT TYPE&nbsp;&nbsp;<b id="vm-type">—</b></div>
+            <div class="vm-line">ROUTED TO&nbsp;&nbsp;&nbsp;&nbsp;<b id="vm-agent">—</b></div>
+            <div class="vm-line">SIGNALS&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b id="vm-signals">—</b></div>
+          </div>
+        </div>
+
+        <div class="risk-block">
+          <div class="risk-head"><span>Risk Score</span><span class="risk-num" id="risk-num">0.00</span></div>
+          <div class="risk-track"><div class="risk-fill" id="risk-fill"></div></div>
+          <div class="risk-ticks"><span>0.0</span><span>0.25</span><span>0.5</span><span>0.75</span><span>1.0</span></div>
+        </div>
+
+        <div class="section-label">Agent Reasoning</div>
+        <div class="reasoning-box" id="reasoning">—</div>
+
+        <div class="section-label">Evidence Signals</div>
+        <div class="signals" id="signals"></div>
+
+        <div id="parsed-section">
+          <div class="section-label">Extracted Fields</div>
+          <div class="parsed-grid" id="parsed"></div>
+        </div>
+
+        <div class="hitl" id="hitl">
+          <h3>⏸ Human Review Required</h3>
+          <p>The agent paused this case for verification. Approve to let it proceed, or reject to block.</p>
+          <input type="text" id="hitl-notes" placeholder="Reviewer notes (optional)" />
+          <div class="hitl-actions">
+            <button class="btn-approve" id="hitl-approve">Approve</button>
+            <button class="btn-reject" id="hitl-reject">Reject</button>
+            <a id="hitl-link" href="#" target="_blank" rel="noopener" style="display:none; align-self:center; font-size:11px; color:var(--verify);">open email approval link ↗</a>
+          </div>
+        </div>
+
+        <div class="trace-line">TRACE <span id="trace-id">—</span></div>
+        <details class="raw"><summary>Raw response</summary><pre id="raw-json"></pre></details>
+      </div>
+
+      <div class="error-box" id="error-box"></div>
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+  "use strict";
+
+  const $ = (id) => document.getElementById(id);
+  const els = {
+    tabPaste: $("tab-paste"), tabUpload: $("tab-upload"),
+    text: $("text-input"), dropzone: $("dropzone"), fileInput: $("file-input"),
+    dzLabel: $("dz-label"), dzFile: $("dz-file"),
+    sender: $("sender-input"), type: $("type-input"),
+    analyze: $("analyze-btn"), clear: $("clear-btn"),
+    idle: $("idle"), scanning: $("scanning"), scanStep: $("scan-step"),
+    result: $("result"), errorBox: $("error-box"),
+    stamp: $("verdict-stamp"), vmType: $("vm-type"), vmAgent: $("vm-agent"), vmSignals: $("vm-signals"),
+    riskNum: $("risk-num"), riskFill: $("risk-fill"),
+    reasoning: $("reasoning"), signals: $("signals"),
+    parsedSection: $("parsed-section"), parsed: $("parsed"),
+    hitl: $("hitl"), hitlNotes: $("hitl-notes"), hitlLink: $("hitl-link"),
+    traceId: $("trace-id"), rawJson: $("raw-json"),
+  };
+
+  let mode = "paste";
+  let selectedFile = null;
+  let currentTrace = null;
+  let currentToken = null;  // { exp, sig } parsed from the signed hitl_link, required to resume
+  let scanTimer = null;
+
+  // ---- clock ----
+  const tick = () => { $("clock").textContent = new Date().toISOString().replace("T", " ").slice(0, 19) + " UTC"; };
+  tick(); setInterval(tick, 1000);
+
+  // ---- tabs ----
+  function setMode(m) {
+    mode = m;
+    els.tabPaste.classList.toggle("active", m === "paste");
+    els.tabUpload.classList.toggle("active", m === "upload");
+    els.text.style.display = m === "paste" ? "" : "none";
+    els.dropzone.classList.toggle("visible", m === "upload");
+  }
+  els.tabPaste.addEventListener("click", () => setMode("paste"));
+  els.tabUpload.addEventListener("click", () => setMode("upload"));
+
+  // ---- dropzone ----
+  els.dropzone.addEventListener("click", () => els.fileInput.click());
+  els.dropzone.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") els.fileInput.click(); });
+  els.fileInput.addEventListener("change", () => setFile(els.fileInput.files[0] || null));
+  ["dragover", "dragenter"].forEach((ev) =>
+    els.dropzone.addEventListener(ev, (e) => { e.preventDefault(); els.dropzone.classList.add("dragover"); }));
+  ["dragleave", "drop"].forEach((ev) =>
+    els.dropzone.addEventListener(ev, (e) => { e.preventDefault(); els.dropzone.classList.remove("dragover"); }));
+  els.dropzone.addEventListener("drop", (e) => {
+    if (e.dataTransfer.files.length) { setFile(e.dataTransfer.files[0]); setMode("upload"); }
+  });
+  function setFile(f) {
+    selectedFile = f;
+    els.dzFile.textContent = f ? `▣ ${f.name} (${(f.size / 1024).toFixed(1)} KB)` : "";
+    els.dzLabel.textContent = f ? "File staged — replace by dropping another" : "Drop a file here or click to browse";
+  }
+
+  // ---- demo samples ----
+  const SAMPLES = {
+    phishing: `From: security@paypa1-support.com
+Subject: Your account has been suspended - verify now
+
+Dear customer,
+
+We detected unusual activity on your account. Your access has been
+suspended. Click the link below within 24 hours to verify your identity
+or your account will be permanently closed.
+
+http://paypa1-support.com/verify?id=8842
+
+PayPal Security Team`,
+    bec: `From: ceo.office@company-mail.net
+Subject: Urgent wire transfer - confidential
+
+Hi, this is Mark. I'm in a board meeting and can't talk. I need you to
+process an urgent wire transfer of $48,500 to a new supplier today.
+This is confidential - do not discuss with anyone else. Send me
+confirmation once done.
+
+Sent from my iPhone`,
+    "bank-change": `Vendor: Acme Industrial Supplies
+Invoice Number: INV-2026-4821
+Date: 2026-07-01
+Amount Due: $12,480.00
+
+NOTE: Please update your records - our banking details have changed.
+New Account Number: 9982-4471-0038
+Please remit payment to the new account within 7 days.`,
+    "known-good": `Vendor: Acme Industrial Supplies
+Invoice Number: INV-2026-4790
+Date: 2026-06-28
+Amount Due: $1,150.00
+Account Number: 4402-1189-7756
+
+Thank you for your continued business.`,
+  };
+  document.querySelectorAll("[data-sample]").forEach((btn) =>
+    btn.addEventListener("click", () => {
+      setMode("paste");
+      els.text.value = SAMPLES[btn.dataset.sample];
+      els.sender.value = "";
+      els.type.value = "";
+    }));
+
+  // ---- clear ----
+  els.clear.addEventListener("click", () => {
+    els.text.value = ""; setFile(null); els.fileInput.value = "";
+    els.sender.value = ""; els.type.value = "";
+    show("idle"); els.errorBox.style.display = "none";
+  });
+
+  // ---- view state ----
+  function show(which) {
+    els.idle.style.display = which === "idle" ? "flex" : "none";
+    els.scanning.style.display = which === "scanning" ? "flex" : "none";
+    els.result.style.display = which === "result" ? "block" : "none";
+  }
+
+  const SCAN_STEPS = ["Preprocessing input…", "Extracting fields…", "Routing to specialist agent…", "Gathering evidence signals…", "Scoring risk…", "Deciding action…"];
+  function startScanSteps() {
+    let i = 0;
+    els.scanStep.textContent = SCAN_STEPS[0];
+    scanTimer = setInterval(() => { i = (i + 1) % SCAN_STEPS.length; els.scanStep.textContent = SCAN_STEPS[i]; }, 900);
+  }
+  function stopScanSteps() { clearInterval(scanTimer); scanTimer = null; }
+
+  function fail(msg) {
+    stopScanSteps();
+    show("idle");
+    els.errorBox.textContent = "✕ " + msg;
+    els.errorBox.style.display = "block";
+    els.analyze.disabled = false;
+    els.analyze.textContent = "Analyze Threat";
+  }
+
+  // FastAPI puts a string in `detail` for HTTPException but an array of error
+  // objects for 422 validation errors — flatten both to a readable message.
+  function errMessage(body, status) {
+    const d = body && (body.detail ?? body.error);
+    if (typeof d === "string") return d;
+    if (Array.isArray(d)) return d.map((e) => e && e.msg ? e.msg : JSON.stringify(e)).join("; ");
+    if (d) return JSON.stringify(d);
+    return `HTTP ${status}`;
+  }
+
+  // ---- analyze ----
+  els.analyze.addEventListener("click", async () => {
+    els.errorBox.style.display = "none";
+    const fd = new FormData();
+    if (mode === "paste") {
+      const t = els.text.value.trim();
+      if (!t) return fail("Paste a message first, or switch to file upload.");
+      fd.append("text", t);
+    } else {
+      if (!selectedFile) return fail("Choose a file first, or switch to paste mode.");
+      fd.append("file", selectedFile);
+    }
+    if (els.sender.value.trim()) fd.append("sender", els.sender.value.trim());
+    if (els.type.value) fd.append("type", els.type.value);
+
+    els.analyze.disabled = true;
+    els.analyze.textContent = "Analyzing…";
+    show("scanning");
+    startScanSteps();
+
+    try {
+      const res = await fetch("/analyze", { method: "POST", body: fd });
+      const body = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(errMessage(body, res.status));
+      if (!body) throw new Error("Server returned an unreadable response");
+      render(body);
+    } catch (err) {
+      fail(err.message || "Request failed — is the Protego server running?");
+      return;
+    }
+    stopScanSteps();
+    els.analyze.disabled = false;
+    els.analyze.textContent = "Analyze Threat";
+  });
+
+  // ---- render ----
+  const VERDICTS = {
+    pass:   { cls: "v-pass",   label: "PASS" },
+    alert:  { cls: "v-alert",  label: "ALERT" },
+    block:  { cls: "v-block",  label: "BLOCK" },
+    verify: { cls: "v-verify", label: "VERIFY" },
+  };
+  const AGENT_NAMES = { invoice: "invoice_agent", phishing: "phishing_agent", bec: "bec_agent", unknown: "—" };
+
+  function render(body) {
+    const state = body.state || {};
+    currentTrace = body.trace_id;
+
+    const decision = (state.decision || (body.paused ? "verify" : "")) || "—";
+    const v = VERDICTS[decision] || { cls: "", label: decision.toUpperCase() };
+    els.stamp.className = "verdict-stamp " + v.cls;
+    els.stamp.textContent = body.paused ? "⏸ " + v.label : v.label;
+
+    els.vmType.textContent = state.threat_type || "unknown";
+    els.vmAgent.textContent = AGENT_NAMES[state.threat_type] || state.threat_type || "—";
+
+    const signals = Array.isArray(state.signals) ? state.signals : [];
+    els.vmSignals.textContent = String(signals.length);
+
+    const score = typeof state.risk_score === "number" ? state.risk_score : 0;
+    els.riskNum.textContent = score.toFixed(2);
+    els.riskFill.style.width = "0%";
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      els.riskFill.style.width = Math.min(100, Math.max(0, score * 100)) + "%";
+    }));
+
+    els.reasoning.textContent = state.reasoning || "No reasoning returned.";
+
+    els.signals.replaceChildren();
+    if (!signals.length) {
+      const d = document.createElement("div");
+      d.className = "signal";
+      d.innerHTML = '<span class="sig-src">none</span><span class="sig-desc" style="color:var(--ink-dim)">No evidence signals emitted.</span><span></span>';
+      els.signals.appendChild(d);
+    }
+    for (const sig of signals) {
+      const { source, weight, force, description, reason, detail, ...rest } = sig || {};
+      const d = document.createElement("div");
+      d.className = "signal";
+      const src = document.createElement("span");
+      src.className = "sig-src";
+      src.textContent = source || "signal";
+      const desc = document.createElement("span");
+      desc.className = "sig-desc";
+      const label = description || reason || "";
+      desc.textContent = label;
+      if (detail) {
+        const dt = document.createElement("span");
+        dt.className = "sig-kv";
+        dt.textContent = (label ? "  —  " : "") + detail;
+        desc.appendChild(dt);
+      }
+      const kv = Object.entries(rest)
+        .filter(([k, val]) => val !== null && val !== undefined && val !== "" && k !== "name" && k !== "kind")
+        .map(([k, val]) => `${k}: ${typeof val === "object" ? JSON.stringify(val) : val}`)
+        .join("  ·  ");
+      if (kv) {
+        const span = document.createElement("span");
+        span.className = "sig-kv";
+        span.textContent = (label || detail ? "  ·  " : "") + kv;
+        desc.appendChild(span);
+      }
+      if (force) {
+        const f = document.createElement("span");
+        f.className = "sig-force";
+        f.textContent = "FORCE " + String(force).toUpperCase();
+        desc.appendChild(f);
+      }
+      const w = document.createElement("span");
+      w.className = "sig-weight";
+      w.textContent = typeof weight === "number" ? "w " + weight.toFixed(2) : "";
+      d.append(src, desc, w);
+      els.signals.appendChild(d);
+    }
+
+    const parsed = state.parsed || {};
+    const cells = Object.entries(parsed).filter(([k, v2]) => k !== "text" && v2 !== null && v2 !== undefined && v2 !== "");
+    els.parsed.replaceChildren();
+    els.parsedSection.style.display = cells.length ? "" : "none";
+    for (const [k, v2] of cells) {
+      const c = document.createElement("div");
+      c.className = "parsed-cell";
+      const kk = document.createElement("div"); kk.className = "pc-k"; kk.textContent = k.replaceAll("_", " ");
+      const vv = document.createElement("div"); vv.className = "pc-v";
+      vv.textContent = v2 !== null && typeof v2 === "object" ? JSON.stringify(v2, null, 1) : String(v2);
+      c.append(kk, vv);
+      els.parsed.appendChild(c);
+    }
+
+    els.hitl.style.display = body.paused ? "block" : "none";
+    currentToken = parseToken(body.hitl_link);
+    if (body.hitl_link) { els.hitlLink.href = body.hitl_link; els.hitlLink.style.display = "inline"; }
+    else { els.hitlLink.style.display = "none"; }
+    // Without a signed token the backend rejects the resume, so disable inline approval and steer to the email link.
+    const canResume = !!currentToken;
+    $("hitl-approve").disabled = !canResume;
+    $("hitl-reject").disabled = !canResume;
+    els.hitlNotes.value = "";
+
+    els.traceId.textContent = body.trace_id || "—";
+    els.rawJson.textContent = JSON.stringify(body, null, 2);
+    show("result");
+  }
+
+  // ---- HITL resume ----
+  // Pull the HMAC exp/sig out of the signed approval link so the resume POST can be authenticated.
+  function parseToken(link) {
+    if (!link) return null;
+    try {
+      const params = new URL(link, window.location.origin).searchParams;
+      const exp = params.get("exp"), sig = params.get("sig");
+      return exp && sig ? { exp, sig } : null;
+    } catch { return null; }
+  }
+
+  async function resume(approved) {
+    if (!currentTrace || !currentToken) return;
+    els.hitl.style.opacity = "0.5";
+    $("hitl-approve").disabled = true;
+    $("hitl-reject").disabled = true;
+    const fd = new FormData();
+    fd.append("approved", approved ? "true" : "false");
+    fd.append("notes", els.hitlNotes.value.trim());
+    fd.append("token_exp", currentToken.exp);
+    fd.append("token_sig", currentToken.sig);
+    try {
+      const res = await fetch(`/resume/${encodeURIComponent(currentTrace)}`, { method: "POST", body: fd });
+      const body = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(errMessage(body, res.status));
+      render({ trace_id: currentTrace, paused: false, state: (body && body.state) || {} });
+    } catch (err) {
+      els.errorBox.textContent = "✕ Resume failed: " + (err.message || "unknown error");
+      els.errorBox.style.display = "block";
+      $("hitl-approve").disabled = false;
+      $("hitl-reject").disabled = false;
+    }
+    els.hitl.style.opacity = "1";
+  }
+  $("hitl-approve").addEventListener("click", () => resume(true));
+  $("hitl-reject").addEventListener("click", () => resume(false));
+})();
+</script>
+</body>
+</html>
