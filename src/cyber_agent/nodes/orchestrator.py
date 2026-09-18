@@ -22,6 +22,11 @@ def orchestrator(
 
     if declared in {"invoice", "phishing", "bec"}:
         route = declared
+    elif parsed.get("email_link_mismatch"):
+        # An anchor advertising one domain while pointing at another has no
+        # legitimate reading, and outranks "invoice" appearing in the subject —
+        # otherwise invoice-shaped phishing never reaches the URL analysis.
+        route = "phishing"
     elif any(h in text for h in _INVOICE_HINTS):
         route = "invoice"
     elif _URL_RE.search(text):

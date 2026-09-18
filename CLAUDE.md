@@ -28,6 +28,7 @@ src/cyber_agent/
   graph.py           # build_graph()
   hitl_mailer.py     # HMAC-signed approval links, SMTP
   preprocessing/ocr.py
+  preprocessing/email_parse.py  # .eml → body text + real <a href> targets
   nodes/             # preprocess, orchestrator, invoice_agent,
                      # phishing_agent, bec_agent, risk_scoring,
                      # action, feedback_logger
@@ -57,6 +58,7 @@ Container: `docker build -t protego . && docker run -p 8000:8000 protego`.
 - **Trace id** is the thread id — reuse it for checkpointer config and audit log.
 - **Stub fallback is the contract**: any new external dependency must degrade gracefully when credentials are absent so the test suite stays offline.
 - **Add a test per node behavior change**, not per file. Fixtures live inline in `tests/` — the four invoice scenarios (known-good, bank-change, new-vendor, amount-anomaly) are the regression baseline.
+- **`.eml` input is parsed, pasted text is not.** `preprocess` routes MIME input through `parse_email` (strict header gate — pasted text opening with `From:`/`Subject:` stays plain text). `parsed["text"]` then leads with `SENDER:`/`SUBJECT:` and a `LINK TARGETS` block; those labels deliberately avoid the RFC field names because `extract_invoice_fields` matches `/vendor|from/` and takes the first hit. Invoice fields are extracted from the body alone for the same reason. A recovered anchor whose display text names a different domain than its href sets `parsed["email_link_mismatch"]`, which outranks the orchestrator's invoice keywords so invoice-shaped phishing still reaches the URL analysis.
 
 ## Gemini notes
 
