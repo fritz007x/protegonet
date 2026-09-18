@@ -1,6 +1,10 @@
 # Environment
 .env
 *.env
+.env.*
+.env_*
+*.env.bak
+*.env_old
 
 # Python
 __pycache__/
