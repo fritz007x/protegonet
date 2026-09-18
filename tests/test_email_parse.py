@@ -173,6 +173,7 @@ def test_real_world_crlf_and_encoded_href_attribute():
         {
             "url": "https://evil.example/path/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/verify?id=9",
             "text": "Sign in at paypal.com",
+            "host": "evil.example",
             "mismatch": "paypal.com",
         }
     ]
@@ -183,11 +184,11 @@ def test_filename_in_anchor_text_is_not_an_impersonation_claim():
     warning in the text the LLM reasons over."""
     from cyber_agent.preprocessing.email_parse import _display_mismatch
 
-    assert _display_mismatch("https://evil.example/go", "Open report.docx now") is None
-    assert _display_mismatch("https://evil.example/go", "Invoice_4821.pdf") is None
+    assert _display_mismatch("evil.example", "Open report.docx now") is None
+    assert _display_mismatch("evil.example", "Invoice_4821.pdf") is None
     # A real domain alongside a filename is still caught.
-    assert _display_mismatch("https://evil.example/go", "report.docx at paypal.com") == "paypal.com"
-    assert _display_mismatch("https://evil.example/go", "Sign in at paypal.com") == "paypal.com"
+    assert _display_mismatch("evil.example", "report.docx at paypal.com") == "paypal.com"
+    assert _display_mismatch("evil.example", "Sign in at paypal.com") == "paypal.com"
 
 
 def test_link_mismatch_routes_invoice_shaped_phishing_to_the_url_analysis():

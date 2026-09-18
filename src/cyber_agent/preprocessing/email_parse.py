@@ -37,6 +37,16 @@ _HEADER_SCAN_LIMIT = 8192
 _HEADER_LINE_RE = re.compile(r"^[A-Za-z][A-Za-z0-9\-]*:")
 _BLANK_LINE_RE = re.compile(r"\r?\n\r?\n")
 _DOMAIN_RE = re.compile(r"\b((?:[a-z0-9-]+\.)+[a-z]{2,})\b", re.IGNORECASE)
+
+# (display label, header name) — the single source of truth for which headers are
+# read and how they are labelled in the rendered blob.
+_HEADER_FIELDS = (
+    ("SENDER", "from"),
+    ("REPLY-TO", "reply-to"),
+    ("RECIPIENT", "to"),
+    ("SUBJECT", "subject"),
+    ("SENT", "date"),
+)
 # "Invoice_4821.pdf" as anchor text is a domain to _DOMAIN_RE; claiming the link
 # impersonates "4821.pdf" would put a fabricated warning in front of the LLM.
 _FILE_EXTENSIONS = frozenset(
@@ -75,9 +85,12 @@ def parse_email(source: Any) -> dict | None:
     except Exception:
         return None
 
-    body = _display_text(msg)
-    links = _collect_links(msg)
-    headers = {k: _header(msg, k) for k in ("from", "reply-to", "to", "subject", "date")}
+    # Every text/html part is parsed exactly once; body text and link targets
+    # both come out of that same pass.
+    html_parts = _parse_html_parts(msg)
+    body = _display_text(msg, html_parts)
+    links = _collect_links(html_parts)
+    headers = {key: _header(msg, key) for _, key in _HEADER_FIELDS}
     sender = parseaddr(headers["from"])[1] or headers["from"]
 
     return {
@@ -107,41 +120,72 @@ def _walk(msg) -> Iterator[Any]:
     """Every part, descending into message/rfc822 (forwarded-as-attachment)."""
     try:
         yield from msg.walk()
-    except Exception:
-        yield msg
+    except Exception:  # malformed tree — stop yielding, don't invent a part
+        return
 
 
-def _part_text(part) -> str:
+def _content(part) -> str:
     try:
         content = part.get_content()
     except Exception:  # unknown charset, broken encoding
         return ""
-    if not isinstance(content, str):
-        return ""
-    return html_to_text(content) if part.get_content_subtype() == "html" else content
+    return content if isinstance(content, str) else ""
 
 
-def _display_text(msg) -> str:
+def _parse_html_parts(msg) -> list[tuple[Any, _HtmlExtractor]]:
+    """Parse every text/html part once, in document order.
+
+    `_HtmlExtractor` yields visible text and anchors from a single pass, so both
+    `_display_text` and `_collect_links` read from these results rather than
+    decoding and re-parsing the same body twice.
+    """
+    parsed: list[tuple[Any, _HtmlExtractor]] = []
+    for part in _walk(msg):
+        if part.get_content_maintype() != "text" or part.get_content_subtype() != "html":
+            continue
+        html = _content(part)
+        if html:
+            parsed.append((part, _parse_html(html)))
+    return parsed
+
+
+def _parse_html(html: str) -> _HtmlExtractor:
+    parser = _HtmlExtractor()
+    try:
+        parser.feed(html)
+        parser.close()
+    except Exception:  # malformed markup
+        pass
+    return parser
+
+
+def _display_text(msg, html_parts: list[tuple[Any, _HtmlExtractor]]) -> str:
     """Readable body, preferring the plain-text alternative."""
+    already_parsed = {id(part): parser for part, parser in html_parts}
+
+    def text_of(part) -> str:
+        parser = already_parsed.get(id(part))
+        return parser.text() if parser is not None else _content(part)
+
     try:
         part = msg.get_body(preferencelist=("plain", "html"))
     except Exception:
         part = None
     if part is not None:
-        text = _part_text(part)
-        if text.strip():
-            return text.strip()
+        text = text_of(part).strip()
+        if text:
+            return text
     # Structures get_body() won't reach — notably a message forwarded as an
     # attachment — still have readable text somewhere in the tree.
     for sub in _walk(msg):
         if sub.get_content_maintype() == "text" and sub.get_content_subtype() in ("plain", "html"):
-            text = _part_text(sub)
-            if text.strip():
-                return text.strip()
+            text = text_of(sub).strip()
+            if text:
+                return text
     return ""
 
 
-def _collect_links(msg) -> list[dict]:
+def _collect_links(html_parts: list[tuple[Any, _HtmlExtractor]]) -> list[dict]:
     """Real href targets from every text/html part, in document order.
 
     Anchors only: an <img src> to a CDN is not a link the user can click, and
@@ -150,16 +194,8 @@ def _collect_links(msg) -> list[dict]:
     """
     links: list[dict] = []
     seen: set[str] = set()
-    for part in _walk(msg):
-        if part.get_content_subtype() != "html" or part.get_content_maintype() != "text":
-            continue
-        try:
-            html = part.get_content()
-        except Exception:
-            continue
-        if not isinstance(html, str):
-            continue
-        for link in extract_links(html):
+    for _, parser in html_parts:
+        for link in parser.links:
             if link["url"] in seen:
                 continue
             seen.add(link["url"])
@@ -167,37 +203,19 @@ def _collect_links(msg) -> list[dict]:
     return links
 
 
-def extract_links(html: str) -> list[dict]:
-    """[{url, text, mismatch}] for every http(s) anchor in `html`."""
-    parser = _HtmlExtractor()
+def _hostname(url: str) -> str:
     try:
-        parser.feed(html)
-        parser.close()
-    except Exception:  # malformed markup
-        pass
-    for link in parser.links:
-        link["mismatch"] = _display_mismatch(link["url"], link["text"])
-    return parser.links
+        return (urlparse(url).hostname or "").lower()
+    except ValueError:  # malformed authority, e.g. an unterminated IPv6 literal
+        return ""
 
 
-def html_to_text(html: str) -> str:
-    """Visible text of an HTML body, with script/style stripped."""
-    parser = _HtmlExtractor()
-    try:
-        parser.feed(html)
-        parser.close()
-    except Exception:
-        pass
-    return parser.text()
-
-
-def _display_mismatch(url: str, text: str) -> str | None:
+def _display_mismatch(host: str, text: str) -> str | None:
     """The domain the anchor text advertises, when the href goes elsewhere.
 
     Classic phishing tell: the link reads "paypal.com" but points at an
     attacker-controlled host.
     """
-    host = (urlparse(url).hostname or "").lower()
     if not host or not text:
         return None
     for candidate in _DOMAIN_RE.findall(text):
@@ -260,29 +278,35 @@ class _HtmlExtractor(HTMLParser):
         self._flush_anchor()
 
     def _flush_anchor(self) -> None:
+        """Finalise the open anchor into a complete link record.
+
+        `host` and `mismatch` are derived here, while the anchor is closed, so a
+        link dict has one shape from the moment it exists and `urlparse` runs
+        once per link inside the parser's own failure guard.
+        """
         if self._anchor is None:
             return
-        self._anchor["text"] = " ".join(self._anchor["text"].split())
-        self.links.append(self._anchor)
+        link = self._anchor
         self._anchor = None
+        link["text"] = " ".join(link["text"].split())
+        link["host"] = _hostname(link["url"])
+        link["mismatch"] = _display_mismatch(link["host"], link["text"])
+        self.links.append(link)
 
 
 def _render(headers: dict, links: list[dict], body: str) -> str:
     """Flatten the message into the single text blob the agents reason over.
 
-    Header labels deliberately avoid the RFC field names: `extract_invoice_fields`
-    matches /vendor|from/ and /date/ and takes the first hit, so a literal
-    "From:" line would shadow the vendor named in an invoice body.
     Links lead the body so they survive the agents' prompt truncation.
+
+    Header labels avoid the RFC field names (SENDER, not From) as cheap
+    insurance: `extract_invoice_fields` matches /vendor|from/ and /date/ and
+    takes the first hit. `preprocess` already keeps this blob away from it by
+    extracting invoice fields from the body alone, so the wording is
+    defence-in-depth rather than load-bearing.
     """
     lines: list[str] = []
-    for label, key in (
-        ("SENDER", "from"),
-        ("REPLY-TO", "reply-to"),
-        ("RECIPIENT", "to"),
-        ("SUBJECT", "subject"),
-        ("SENT", "date"),
-    ):
+    for label, key in _HEADER_FIELDS:
         if headers.get(key):
             lines.append(f"{label}: {headers[key]}")
 
@@ -293,10 +317,10 @@ def _render(headers: dict, links: list[dict], body: str) -> str:
             lines.append(f"  [{i}] {link['url']}")
             if link["text"]:
                 lines.append(f"      displayed as: {link['text']}")
-            if link.get("mismatch"):
-                host = urlparse(link["url"]).hostname or "?"
+            if link["mismatch"]:
                 lines.append(
-                    f"      WARNING: display text claims {link['mismatch']} but the link goes to {host}"
+                    f"      WARNING: display text claims {link['mismatch']} "
+                    f"but the link goes to {link['host'] or '?'}"
                 )
 
     if body:

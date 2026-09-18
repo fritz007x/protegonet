@@ -17,12 +17,16 @@ def preprocess(state: ThreatState) -> dict:
 
     # Invoice fields come from the body alone — the rendered blob prepends
     # headers and link targets, and those would shadow the real vendor/amount.
+    # Its own body-only "text" is then replaced by the blob the agents read.
     parsed = extract_invoice_fields(email["body"])
     parsed["text"] = email["text"]
     parsed["email_sender"] = email["sender"]
     parsed["email_subject"] = email["subject"]
-    parsed["email_links"] = len(email["links"])
-    parsed["email_link_mismatch"] = any(link["mismatch"] for link in email["links"])
+    # Absent rather than 0/False when there is nothing to report, so the GUI's
+    # Extracted Fields grid stays as sparse as it is for the other fields.
+    if email["links"]:
+        parsed["email_links"] = len(email["links"])
+        parsed["email_link_mismatch"] = any(link["mismatch"] for link in email["links"])
 
     updates: dict = {"parsed": parsed}
     # A sender typed into the form is the analyst's own assertion — keep it.
